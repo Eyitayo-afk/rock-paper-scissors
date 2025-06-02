@@ -10,17 +10,18 @@ public class StudentModel {
 
     // Connect to SQL Server
     private Connection connect() {
+        String url = "jdbc:sqlserver://DESKTOP-KDCMV5P\\SQLEXPRESS:1433;DatabaseName=Students;" +
+                "user=aptech;" +
+                "password=2929;" +
+                "encrypt=false;" +
+                "trustServerCertificate=true";
         Connection connection = null;
         try {
-            connection = DriverManager.getConnection(
-                "jdbc:sqlserver://DESKTOP-749TN8Q;Database=Students;" +
-                "encrypt=false;" +
-                "trustServerCertificate=true;" +
-                "user=aptech;" +
-                "password=aptech"
-            );
+            connection = DriverManager.getConnection(url);
+            System.out.println("Database connection established.");
         } catch (SQLException e) {
             System.err.println("Connection failed: " + e.getMessage());
+            e.printStackTrace();
         }
         return connection;
     }
@@ -28,15 +29,15 @@ public class StudentModel {
     // Create Students table if it doesn't exist
     public void createTable() {
         String sql = "IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Students') " +
-                     "CREATE TABLE Students (" +
-                     "Id INT PRIMARY KEY IDENTITY(1,1), " +
-                     "Fullname VARCHAR(50), " +
-                     "Username VARCHAR(50) UNIQUE, " +
-                     "Passcode INT" +
-                     ")";
+                "CREATE TABLE Students (" +
+                "Id INT PRIMARY KEY IDENTITY(1,1), " +
+                "Fullname VARCHAR(50), " +
+                "Username VARCHAR(50) UNIQUE, " +
+                "Passcode INT" +
+                ")";
 
         try (Connection connection = connect();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.execute();
         } catch (SQLException e) {
             System.err.println("Table creation failed: " + e.getMessage());
@@ -48,7 +49,7 @@ public class StudentModel {
         String sql = "INSERT INTO Students (Fullname, Username, Passcode) VALUES (?, ?, ?)";
 
         try (Connection connection = connect();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, fullname);
             statement.setString(2, username);
@@ -66,7 +67,7 @@ public class StudentModel {
         int id = 0;
 
         try (Connection connection = connect();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, username);
             ResultSet resultSet = statement.executeQuery();
@@ -91,8 +92,8 @@ public class StudentModel {
         String sql = "SELECT Username FROM Students";
 
         try (Connection connection = connect();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet rs = statement.executeQuery()) {
+                PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet rs = statement.executeQuery()) {
 
             while (rs.next()) {
                 usernames.add(rs.getString("Username"));

@@ -1,5 +1,7 @@
 package isaac;
 
+import java.io.InputStream;
+
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
@@ -17,7 +19,12 @@ public class LoginPage {
 
     public void show(Stage stage) {
         // Logo image
-        Image logo = new Image(getClass().getResourceAsStream("/logo.png"));
+        InputStream logoStream = getClass().getResourceAsStream("/Logo.png");
+        if (logoStream == null) {
+            throw new RuntimeException("Logo image not found in classpath!");
+        }
+        Image logo = new Image(logoStream);
+
         ImageView logoView = new ImageView(logo);
         logoView.setFitWidth(100);
         logoView.setPreserveRatio(true);
@@ -58,18 +65,34 @@ public class LoginPage {
             String password = passwordField.getText().trim();
             try {
                 int passcode = Integer.parseInt(password);
-                int id = studentModel.check(username, passcode);
-                if (id != 0) {
-                    messageLabel.setText("Login successful! Welcome, " + username);
-                    messageLabel.setStyle("-fx-text-fill: green;");
 
-                    // Redirect to game page - pass the same stage
-                    GamePage.showGamePage(stage, username);
+                // Run DB check in a background thread
+                javafx.concurrent.Task<Integer> loginTask = new javafx.concurrent.Task<>() {
+                    @Override
+                    protected Integer call() {
+                        return studentModel.check(username, passcode);
+                    }
+                };
 
-                } else {
-                    messageLabel.setText("Invalid username or passcode.");
+                loginTask.setOnSucceeded(ev -> {
+                    int id = loginTask.getValue();
+                    if (id != 0) {
+                        messageLabel.setText("Login successful! Welcome, " + username);
+                        messageLabel.setStyle("-fx-text-fill: green;");
+                        GamePage.showGamePage(stage, username);
+                    } else {
+                        messageLabel.setText("Invalid username or passcode.");
+                        messageLabel.setStyle("-fx-text-fill: red;");
+                    }
+                });
+
+                loginTask.setOnFailed(ev -> {
+                    messageLabel.setText("Login failed due to an error.");
                     messageLabel.setStyle("-fx-text-fill: red;");
-                }
+                });
+
+                new Thread(loginTask).start();
+
             } catch (NumberFormatException ex) {
                 messageLabel.setText("Passcode must be a number.");
                 messageLabel.setStyle("-fx-text-fill: red;");
@@ -81,7 +104,8 @@ public class LoginPage {
         goToSignup.setOnAction(e -> new SignupPage().show(stage));
 
         // Layout container
-        VBox root = new VBox(15, logoView, titleLabel, usernameField, passwordField, loginButton, goToSignup, messageLabel);
+        VBox root = new VBox(15, logoView, titleLabel, usernameField, passwordField, loginButton, goToSignup,
+                messageLabel);
         root.setPadding(new Insets(25));
         root.setStyle("-fx-alignment: center;");
 
